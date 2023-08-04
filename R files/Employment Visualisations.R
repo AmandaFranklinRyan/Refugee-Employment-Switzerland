@@ -45,8 +45,31 @@ employment_plot <- employment_time_data %>%
     yaxis=list(title="Average employment",tickformat = ".1%"))
 
 #Create subplots to see differences between cantons
+
+ticktext=list("End of Q1", "End of Q2", "End of Q3", "End of Q4"),
+tickvals=list("2016-04-01", "2016-07-01", "2016-10-01", "2016-12-30")
+
+x_values <- list("2022-01-01","2022-06-0","2022-12-01")
+x_labels <- list("January","June","December")
+
+
 canton_data <- cleaned_data %>% 
   filter(year(Date)=="2022") %>%
-  select(Country,Employed_percent,Canton,Date)
+  select(Country,Employed_percent,Canton,Date) %>% 
+  group_by(Country)
+
+canton_plot <- canton_data %>% 
+  filter(Country=="Syrien") %>% 
+  group_by(Canton) %>% 
+  nest() %>% 
+  mutate(plot=map2(data,Canton,\(data, Canton)
+                   plot_ly(data = data, x = ~Date, y = ~Employed_percent) %>%
+                    add_markers(name = ~Canton) %>% 
+                   layout(xaxis=list(tickvals=x_values, ticktext=x_labels,
+                                     title="2022",
+                                     showline= T, linewidth=1, linecolor='black'),
+                          yaxis=list(title="Employed",tickformat = ".1%")))) %>% 
+  subplot(nrows = 5, shareY = TRUE, shareX = FALSE)
+    
 
 
