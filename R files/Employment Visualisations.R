@@ -18,7 +18,6 @@ nationality_january_2023 <-cleaned_data %>%
   summarise(Total=sum(Total)) %>% 
   mutate(Country=fct_reorder(Country,Total, .desc=TRUE)) #Convert to factor for plotting
   
-
 nationality_plot_2023 <- nationality_january_2023 %>%
   plot_ly(x = ~Country, y = ~Total, hoverinfo="text",
           text=~paste("Country",Country, "<br>","Total:",Total)) %>%
@@ -46,30 +45,70 @@ employment_plot <- employment_time_data %>%
 
 #Create subplots to see differences between cantons
 
-ticktext=list("End of Q1", "End of Q2", "End of Q3", "End of Q4"),
-tickvals=list("2016-04-01", "2016-07-01", "2016-10-01", "2016-12-30")
-
-x_values <- list("2022-01-01","2022-06-0","2022-12-01")
-x_labels <- list("January","June","December")
-
+x_values <- list("2022-01-01","2022-06-01","2022-12-01")
+x_labels <- list("Jan","June","Dec")
 
 canton_data <- cleaned_data %>% 
   filter(year(Date)=="2022") %>%
   select(Country,Employed_percent,Canton,Date) %>% 
   group_by(Country)
 
+# Calculate average employment value across all cantons in a single month
+average_employment_syria <- cleaned_data %>% 
+  filter(year(Date)=="2022" & Country=="Syrien") %>%
+  select(Employed_percent, Canton,Date) %>% 
+  group_by(Date) %>% 
+  summarise(average_employment=mean(Employed_percent))
+
+#Create faceted plot of Syrian employment for all cantons
 canton_plot <- canton_data %>% 
-  filter(Country=="Syrien") %>% 
+  filter(Country=="Eritrea") %>% 
   group_by(Canton) %>% 
   nest() %>% 
   mutate(plot=map2(data,Canton,\(data, Canton)
                    plot_ly(data = data, x = ~Date, y = ~Employed_percent) %>%
-                    add_markers(name = ~Canton) %>% 
-                   layout(xaxis=list(tickvals=x_values, ticktext=x_labels,
-                                     title="2022",
+                   add_lines(color=I("blue")) %>% 
+                   layout(title= "Employment Rate for Syrian refugees across cantons in 2022",
+                     xaxis=list(tickvals=x_values, ticktext=x_labels,
+                                     title=FALSE,
                                      showline= T, linewidth=1, linecolor='black'),
-                          yaxis=list(title="Employed",tickformat = ".1%")))) %>% 
-  subplot(nrows = 5, shareY = TRUE, shareX = FALSE)
+                          yaxis=list(title=FALSE,
+                                     range = list(0, 0.75),
+                                     tickformat = "1%",
+                                     tickfont = list(size = 10),
+                                     showline= F),
+                          showlegend=FALSE) %>% 
+                     add_annotations(
+                       text = ~unique(Canton),
+                       x = 0.5,
+                       y = 1,
+                       yref = "paper",
+                       xref = "paper",
+                       xanchor = "middle",
+                       yanchor = "top",
+                       showarrow = FALSE,
+                       font = list(size = 12)
+                     )
+                                     )) %>% 
+  subplot(nrows = 6, shareY = TRUE, shareX = FALSE)
+
+#Create dot plot of average annual employment of Syrians by Canton in 2022
+
+dot_data <- cleaned_data %>% 
+  filter(year(Date)=="2022" & Country=="Syrien") %>% 
+  select(Date,Employed_percent,Canton) %>% 
+  group_by(Canton) %>% 
+  summarise(Average_employment=mean(Employed_percent))
+
+dot_plot <- dot_data %>% 
+  plot_ly(x=~Average_employment, y=~fct_reorder(Canton,Average_employment)) %>% 
+  add_markers() %>% 
+  layout(xaxis=list(title="Average Employment",tickformat = "1%"),
+         yaxis=list(title=FALSE),
+         title="Employment Rate amongst Syrians in 2022")
+  
+#Create chloropleth map of employment
+
     
 
 
