@@ -107,7 +107,8 @@ dot_plot <- dot_data %>%
          yaxis=list(title=FALSE),
          title="Employment Rate amongst Syrians in 2022")
   
-#Create chloropleth map of employment
+
+  
 
     
 
