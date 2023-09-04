@@ -81,13 +81,16 @@ employment_bar_chart <- employment_barchart_data %>%
 
 #Plot employment percentage of all refugees in 2022
 interactive_df <- geo_employment %>% 
-  select(Country,Total,Employed_percent,name,Date) %>%
+  select(Country,Total,Employed_percent,name,Date,Employment_Age) %>%
   mutate(Employed_percent=ifelse(Employed_percent=="-",NA,Employed_percent)) %>% 
   mutate(Employed_percent=as.numeric(Employed_percent)) %>% 
-  group_by(name,Date) %>% 
+  group_by(name,Country,Date) %>% 
   summarise(Employed_percent=mean(Employed_percent, na.rm=TRUE),
-            Total=sum(Total))
-  
+            Total=sum(Total),
+            Employment_Age=sum(Employment_Age)) %>% 
+  mutate(Date=(paste("01-", Date, sep=""))) %>%  #Add day
+  mutate(Date=as.POSIXct(Date, format = "%d-%m-%Y"))   #Convert to datetime
+
 
 #Create choropleth map from geojson
 g <- list(
@@ -97,13 +100,14 @@ g <- list(
 swiss_map <- plot_ly(hoverinfo = "text",
                      text = ~paste("Canton:", interactive_df$name, "<br>",
                                    "Employed:", interactive_df$Employed_percent,"%", "<br>",
+                                   "Employment Age",interactive_df$Employment_Age,"<br>",
                                    "Total:", interactive_df$Total, "refugees")) %>%  
   add_trace(
     type="choropleth",
     geojson=boundaries_json,
     locations=interactive_df$name,
     z=interactive_df$Employed_percent,
-    frame=~interactive_df$Date,
+    #frame=~interactive_df$Country,
     colorscale="Blues",
     reversescale =T,
     #zmin=20,
@@ -115,4 +119,53 @@ swiss_map <- plot_ly(hoverinfo = "text",
            len=0.5) %>% 
   layout(title = "2022 Refugee Employment in Switzerland")
 
+# 3. Create Subplots for each nationality ---------------------------------
 
+nationality_list <- c("Syrien","Türkei","Eritrea", "Afghanistan")
+plot_list <- list()
+g <- list(
+  fitbounds = "locations",
+  visible = FALSE)
+
+for (nationality in nationality_list){
+  current_df <- interactive_df %>% 
+    filter(Country==nationality)
+
+  swiss_plot <- plot_ly(hoverinfo = "text",
+                        geo = 'geo',
+                        showlegend = F,
+                        legendgroup=current_df$Country,
+                       text = ~paste("Canton:", current_df$name, "<br>",
+                                     "Employed:", current_df$Employed_percent,"%", "<br>",
+                                     "Employment Age",current_df$Employment_Age,"<br>",
+                                     "Total:", current_df$Total, "refugees")) %>%  
+    add_trace(
+      type="choropleth",
+      geojson=boundaries_json,
+      locations=current_df$name,
+      z=current_df$Employed_percent,
+      frame=current_df$Date,
+      colorscale="Blues",
+      reversescale =T,
+      zmin=20,
+      zmax=70,
+      featureidkey="properties.name") %>%
+    colorbar(thickess=20,
+      len=0.5) %>%
+  layout(geo = g, annotations = list(x = 1 , y = 1.05, text = nationality, showarrow = F,
+                                     xref='paper', yref='paper'))
+  
+  plot_list <- append(plot_list,list(swiss_plot))
+}
+
+names(plot_list) <- nationality_list
+
+subplot(plot_list, nrows=4)  %>% layout(title = "2022 Refugee Employment in Switzerland")
+
+#%>% layout(geo = g, geo2 = g, geo3=g)
+
+
+
+
+
+  

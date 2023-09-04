@@ -1,13 +1,15 @@
 library(tidyverse)
 library(rio)
+library(plotly)
 
 # Data downloaded from:https://www.bfs.admin.ch/asset/en/ts-x-40.02.03.02.03 
 # Taken from Structural Survey
 # Population taken from 15-64 years
+
 # Import Data
 
-swiss_employment <- rio::import("C:\\Users\\amand\\Downloads\\ts-x-40.02.03.02.03.csv")
-canton_links <- rio::import("Canton Links.xlsx")
+swiss_employment <- rio::import("Raw Data/Swiss Unemployment/ts-x-40.02.03.02.03.csv")
+canton_links <- rio::import("Processed Data/Canton Links.xlsx") #Linking abbreviations and canton names
 boundaries_json <- rjson::fromJSON(file="Geographic Data/Switzerland boundaries.geojson")
 
 unemployment_data <- swiss_employment %>% 
@@ -16,6 +18,8 @@ unemployment_data <- swiss_employment %>%
 
 unemployment_canton_df <- left_join(unemployment_data, canton_links, by=c("GEO"="CODE")) %>% 
   filter(LABEL_EN!="Switzerland")
+
+rio::export(unemployment_canton_df,"Processed Data/Unemployment Swiss Data.csv")
 
 #Plot data on choropleth map
 
@@ -37,12 +41,12 @@ swiss_map <- plot_ly(hoverinfo = "text",
     zmin=0,
     zmax=15,
     featureidkey="properties.name") %>% 
-  layout(geo = g) %>%  
+  layout(geo = g,
+         title = "Unemployment in Switzerland") %>%  
   colorbar(thickess=20,
            #orientation="h",
-           len=0.5) %>% 
-  layout(title = "Unemployment in Switzerland")
+           len=0.5) 
 
-# 3. Create Subplots for each nationality ---------------------------------
+
 
   
